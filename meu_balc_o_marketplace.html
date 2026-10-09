@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Balcão - O Seu Portal de Compras e Vendas PME</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f7f2',
+                            100: '#e6ebd8',
+                            200: '#cedbb6',
+                            300: '#acc48b',
+                            400: '#87aa61',
+                            500: '#678e41',
+                            600: '#507131',
+                            700: '#3d5628',
+                            800: '#364322', // Primary Logo Dark Green
+                            900: '#2b381d',
+                            cream: '#F7F2E7', // Primary Logo Cream Background
+                            creamDark: '#EBE3D3',
+                            accent: '#D97706' // Warm Amber
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F7F2E7;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #364322;
+            border-radius: 9999px;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-invoice, #printable-invoice * {
+                visibility: visible;
+            }
+            #printable-invoice {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-brand-cream text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-800 selection:text-white"
+      x-data="meuBalcaoApp()" x-init="initApp()">
+
+    <!-- TOP NOTIFICATION BANNER -->
+    <div class="bg-brand-800 text-brand-cream text-xs sm:text-sm py-1.5 px-4 text-center font-medium flex items-center justify-between">
+        <div class="container mx-auto flex justify-between items-center">
+            <p class="truncate"><i class="fa-solid fa-store mr-2 text-yellow-400"></i> Meu Balcão: A maior montra online de PMEs. Venda fácil com Faturação Digital!</p>
+            <div class="flex items-center space-x-4 text-xs">
+                <button @click="userMode = (userMode === 'client' ? 'seller' : 'client')" class="underline hover:text-white transition flex items-center gap-1 font-semibold">
+                    <i class="fa-solid" :class="userMode === 'client' ? 'fa-shop' : 'fa-user'"></i>
+                    <span x-text="userMode === 'client' ? 'Modo Vendedor (Bancada)' : 'Modo Comprador'"></span>
+                </button>
+                <span class="hidden md:inline">|</span>
+                <span class="hidden md:inline"><i class="fa-solid fa-headset mr-1"></i> Suporte PME</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN HEADER -->
+    <header class="bg-white border-b border-brand-creamDark sticky top-0 z-40 shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <!-- Logo & Brand Name -->
+            <a @click="currentTab = 'home'" class="cursor-pointer flex items-center gap-3 shrink-0">
+                <!-- SVG Logo inspired by logo image -->
+                <div class="w-12 h-12 bg-brand-cream border-2 border-brand-800 rounded-xl flex items-center justify-center p-1.5 shadow-sm hover:scale-105 transition transform">
+                    <svg viewBox="0 0 100 80" class="w-full h-full text-brand-800 fill-current">
+                        <!-- Table Top -->
+                        <path d="M 10 30 Q 50 30 90 30 C 95 30 95 37 90 37 L 10 37 C 5 37 5 30 10 30 Z" stroke="#364322" stroke-width="2"/>
+                        <!-- Drawer Curve -->
+                        <path d="M 25 45 Q 50 58 75 45" stroke="#364322" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <!-- Table Legs -->
+                        <path d="M 16 37 L 16 65 C 16 68 20 68 22 65 L 22 55 L 78 55 L 78 65 C 80 68 84 68 84 65 L 84 37" stroke="#364322" stroke-width="3" fill="none"/>
+                        <!-- Shopping Bag on Desk -->
+                        <path d="M 58 12 L 72 12 C 75 12 76 14 76 16 L 78 29 L 54 29 L 56 16 C 56 14 57 12 58 12 Z" fill="#F7F2E7" stroke="#364322" stroke-width="2.5"/>
+                        <!-- Handle -->
+                        <path d="M 61 12 C 61 7 69 7 69 12" stroke="#364322" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-2xl font-black text-brand-800 tracking-tight block leading-none">Meu Balcão</span>
+                    <span class="text-[10px] text-brand-600 font-semibold uppercase tracking-wider block mt-0.5">Mercado Digital & PMEs</span>
+                </div>
+            </a>
+
+            <!-- Search Bar (AliExpress Style) -->
+            <div class="flex-1 max-w-2xl hidden md:block">
+                <div class="flex rounded-lg overflow-hidden border-2 border-brand-800 focus-within:ring-2 focus-within:ring-brand-500/50">
+                    <select x-model="selectedCategory" class="bg-brand-cream border-r border-brand-creamDark px-3 py-2 text-sm text-brand-800 font-medium outline-none cursor-pointer">
+                        <option value="all">Todas Categorias</option>
+                        <option value="Roupas">Roupas</option>
+                        <option value="Cosméticos">Cosméticos</option>
+                        <option value="Eletrónicos">Eletrónicos</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                    <input type="text" x-model="searchQuery" @input="searchProducts()" placeholder="Pesquise produtos, marcas ou lojas de balcão..." class="w-full px-4 py-2 text-sm text-slate-800 outline-none">
+                    <button @click="searchProducts()" class="bg-brand-800 text-white px-6 py-2 font-medium hover:bg-brand-900 transition flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Seller Dashboard Quick Link -->
+                <button @click="currentTab = 'seller-dashboard'; userMode = 'seller'" 
+                        class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-brand-800 text-brand-800 hover:bg-brand-800 hover:text-white transition text-xs font-semibold">
+                    <i class="fa-solid fa-cash-register"></i>
+                    <span>Minha Bancada</span>
+                </button>
+
+                <!-- Cart Button -->
+                <button @click="cartOpen = true" class="relative p-2 text-brand-800 hover:text-brand-600 transition">
+                    <i class="fa-solid fa-cart-shopping text-2xl"></i>
+                    <span x-show="cart.length > 0" x-text="cart.reduce((a, b) => a + b.quantity, 0)"
+                          class="absolute -top-1 -right-1 bg-brand-accent text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                    </span>
+                </button>
+
+                <!-- User Account / Profile -->
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center gap-2 border border-slate-200 rounded-full p-1 pr-3 hover:border-brand-800 transition">
+                        <div class="w-8 h-8 rounded-full bg-brand-800 text-white flex items-center justify-center text-xs font-bold">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-700 hidden sm:inline" x-text="currentUser.name"></span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <!-- User Dropdown Menu -->
+                    <div x-show="open" @click.outside="open = false" x-cloak
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50 text-sm">
+                        <div class="px-4 py-2 border-b border-slate-100">
+                            <p class="font-bold text-brand-800" x-text="currentUser.name"></p>
+                            <p class="text-xs text-slate-500" x-text="currentUser.email"></p>
+                        </div>
+                        <a @click="currentTab = 'home'; open = false" class="block px-4 py-2 hover:bg-brand-cream text-slate-700 cursor-pointer"><i class="fa-solid fa-house mr-2 text-brand-800"></i> Início</a>
+                        <a @click="currentTab = 'orders'; open = false" class="block px-4 py-2 hover:bg-brand-cream text-slate-700 cursor-pointer"><i class="fa-solid fa-file-invoice mr-2 text-brand-800"></i> Minhas Compras & Faturas</a>
+                        <a @click="currentTab = 'seller-dashboard'; userMode = 'seller'; open = false" class="block px-4 py-2 hover:bg-brand-cream text-slate-700 cursor-pointer"><i class="fa-solid fa-store mr-2 text-brand-800"></i> Gestão de Stock / Bancada</a>
+                        <div class="border-t border-slate-100 my-1"></div>
+                        <a @click="openAddStoreModal(); open = false" class="block px-4 py-2 hover:bg-brand-cream text-brand-800 font-semibold cursor-pointer"><i class="fa-solid fa-plus-circle mr-2"></i> Criar Novo Balcão</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Row -->
+        <div class="px-4 pb-3 md:hidden">
+            <div class="flex rounded-lg overflow-hidden border border-brand-800">
+                <input type="text" x-model="searchQuery" @input="searchProducts()" placeholder="Pesquisar no Meu Balcão..." class="w-full px-3 py-1.5 text-xs outline-none">
+                <button @click="searchProducts()" class="bg-brand-800 text-white px-4 text-xs font-medium">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- CATEGORIES & NAVIGATION BAR -->
+        <nav class="bg-brand-800 text-white shadow-inner">
+            <div class="container mx-auto px-4 flex items-center justify-between overflow-x-auto custom-scrollbar text-xs sm:text-sm font-medium">
+                <div class="flex items-center space-x-1 sm:space-x-6 py-2.5 whitespace-nowrap">
+                    <button @click="currentTab = 'home'; selectedCategory = 'all'" :class="currentTab === 'home' && selectedCategory === 'all' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-3 py-1 rounded-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-grid-2"></i> Início
+                    </button>
+                    <button @click="currentTab = 'stores'" :class="currentTab === 'stores' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-3 py-1 rounded-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-shop"></i> Lojas Registadas
+                    </button>
+                    <div class="h-4 w-px bg-brand-600 my-auto"></div>
+                    <!-- Categories Links -->
+                    <button @click="currentTab = 'home'; filterByCategory('Roupas')" :class="selectedCategory === 'Roupas' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-2 py-1 rounded-md transition">
+                        👕 Roupas
+                    </button>
+                    <button @click="currentTab = 'home'; filterByCategory('Cosméticos')" :class="selectedCategory === 'Cosméticos' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-2 py-1 rounded-md transition">
+                        💄 Cosméticos
+                    </button>
+                    <button @click="currentTab = 'home'; filterByCategory('Eletrónicos')" :class="selectedCategory === 'Eletrónicos' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-2 py-1 rounded-md transition">
+                        📱 Eletrónicos
+                    </button>
+                    <button @click="currentTab = 'home'; filterByCategory('Outros')" :class="selectedCategory === 'Outros' ? 'bg-brand-700 text-yellow-300 font-bold' : 'hover:text-yellow-200'" class="px-2 py-1 rounded-md transition">
+                        📦 Outros
+                    </button>
+                </div>
+
+                <!-- Digital Invoice Tool Nav Button -->
+                <div class="py-2.5 whitespace-nowrap pl-4">
+                    <button @click="currentTab = 'invoices'" class="bg-yellow-500 hover:bg-yellow-400 text-brand-900 font-bold px-3 py-1 rounded-md transition text-xs flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-receipt"></i> Fatura Digital
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTENT VIEW AREA -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+
+        <!-- VIEW 1: HOME PAGE (AliExpress Grid Layout) -->
+        <template x-if="currentTab === 'home'">
+            <div class="space-y-6">
+                
+                <!-- TOP BANNER & CATEGORY QUICK SIDEBAR -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Sidebar Categories -->
+                    <div class="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <h3 class="font-bold text-brand-800 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
+                            <i class="fa-solid fa-list-ul"></i> Categorias do Balcão
+                        </h3>
+                        <ul class="space-y-2 text-sm">
+                            <li>
+                                <button @click="filterByCategory('all')" :class="selectedCategory === 'all' ? 'text-brand-800 font-bold bg-brand-cream' : 'text-slate-600 hover:text-brand-800'" class="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition">
+                                    <span><i class="fa-solid fa-border-all mr-2 w-5 text-brand-600"></i> Todos os Produtos</span>
+                                    <span class="text-xs text-slate-400" x-text="products.length"></span>
+                                </button>
+                            </li>
+                            <li>
+                                <button @click="filterByCategory('Roupas')" :class="selectedCategory === 'Roupas' ? 'text-brand-800 font-bold bg-brand-cream' : 'text-slate-600 hover:text-brand-800'" class="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition">
+                                    <span><i class="fa-solid fa-shirt mr-2 w-5 text-brand-600"></i> Roupas e Moda</span>
+                                    <span class="text-xs text-slate-400" x-text="products.filter(p=>p.category==='Roupas').length"></span>
+                                </button>
+                            </li>
+                            <li>
+                                <button @click="filterByCategory('Cosméticos')" :class="selectedCategory === 'Cosméticos' ? 'text-brand-800 font-bold bg-brand-cream' : 'text-slate-600 hover:text-brand-800'" class="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition">
+                                    <span><i class="fa-solid fa-wand-magic-sparkles mr-2 w-5 text-brand-600"></i> Cosméticos & Beleza</span>
+                                    <span class="text-xs text-slate-400" x-text="products.filter(p=>p.category==='Cosméticos').length"></span>
+                                </button>
+                            </li>
+                            <li>
+                                <button @click="filterByCategory('Eletrónicos')" :class="selectedCategory === 'Eletrónicos' ? 'text-brand-800 font-bold bg-brand-cream' : 'text-slate-600 hover:text-brand-800'" class="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition">
+                                    <span><i class="fa-solid fa-mobile-screen mr-2 w-5 text-brand-600"></i> Eletrónicos & Gadgets</span>
+                                    <span class="text-xs text-slate-400" x-text="products.filter(p=>p.category==='Eletrónicos').length"></span>
+                                </button>
+                            </li>
+                            <li>
+                                <button @click="filterByCategory('Outros')" :class="selectedCategory === 'Outros' ? 'text-brand-800 font-bold bg-brand-cream' : 'text-slate-600 hover:text-brand-800'" class="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition">
+                                    <span><i class="fa-solid fa-box mr-2 w-5 text-brand-600"></i> Outros Artigos</span>
+                                    <span class="text-xs text-slate-400" x-text="products.filter(p=>p.category==='Outros').length"></span>
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Feature Highlight Card -->
+                        <div class="mt-6 p-3 bg-brand-cream rounded-xl border border-brand-200">
+                            <div class="flex items-center gap-2 text-brand-800 font-bold text-xs mb-1">
+                                <i class="fa-solid fa-file-invoice text-brand-600"></i> Fatura Digital Automática
+                            </div>
+                            <p class="text-[11px] text-slate-600 leading-tight">Todas as compras recebem faturas oficiais com QR code instantâneo.</p>
+                        </div>
+                    </div>
+
+                    <!-- Main Promo Banner (AliExpress Flash Deals Theme) -->
+                    <div class="lg:col-span-3 bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-md flex flex-col justify-between">
+                        <div class="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
+                            <i class="fa-solid fa-shop text-[220px]"></i>
+                        </div>
+                        <div>
+                            <div class="inline-flex items-center gap-2 bg-yellow-400 text-brand-900 px-3 py-1 rounded-full font-extrabold text-xs mb-3 shadow-sm uppercase tracking-wider">
+                                <i class="fa-solid fa-bolt"></i> Destaques PME
+                            </div>
+                            <h1 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Aproximando Pequenos Negócios e Clientes</h1>
+                            <p class="text-brand-100 text-sm max-w-xl mb-6">Explore balcões virtuais de comércios locais. Stock atualizado em tempo real e emissão simplificada de faturas digitais.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button @click="scrollToProducts()" class="bg-yellow-400 hover:bg-yellow-300 text-brand-900 font-bold px-6 py-2.5 rounded-lg transition shadow-md text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-bag-shopping"></i> Comprar Agora
+                            </button>
+                            <button @click="openAddStoreModal()" class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-semibold px-5 py-2.5 rounded-lg transition text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-store"></i> Abrir a minha Loja
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FLASH DEALS BAR -->
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-red-500 text-white font-black text-xs px-2.5 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-fire"></i> Balcão Super Ofertas
+                        </span>
+                        <span class="text-xs text-slate-500 font-medium hidden sm:inline">Descontos diretos e entrega rápida por comerciantes PME</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold text-brand-800">
+                        <span>Filtrar por:</span>
+                        <button @click="sortBy = 'popular'" :class="sortBy === 'popular' ? 'bg-brand-800 text-white' : 'bg-slate-100 text-slate-600'" class="px-2.5 py-1 rounded-md transition">Mais Populares</button>
+                        <button @click="sortBy = 'price-low'" :class="sortBy === 'price-low' ? 'bg-brand-800 text-white' : 'bg-slate-100 text-slate-600'" class="px-2.5 py-1 rounded-md transition">Menor Preço</button>
+                    </div>
+                </div>
+
+                <!-- PRODUCTS GRID -->
+                <div id="products-section" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <template x-for="product in filteredProducts" :key="product.id">
+                        <div class="bg-white rounded-xl overflow-hidden border border-slate-200 hover:shadow-lg transition group flex flex-col justify-between">
+                            <!-- Image Container -->
+                            <div class="relative bg-brand-cream/50 aspect-square overflow-hidden cursor-pointer" @click="openProductModal(product)">
+                                <img :src="product.image" :alt="product.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                     onerror="this.src='https://placehold.co/400x400/364322/F7F2E7?text=Meu+Balcao'">
+                                
+                                <span class="absolute top-2 left-2 bg-brand-800/90 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-sm" x-text="product.category"></span>
+                                
+                                <template x-if="product.stock <= 5 && product.stock > 0">
+                                    <span class="absolute bottom-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                                        Últimas <span x-text="product.stock"></span> un!
+                                    </span>
+                                </template>
+
+                                <template x-if="product.stock === 0">
+                                    <div class="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold">
+                                        Esgotado
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Product Info -->
+                            <div class="p-3 flex-grow flex flex-col justify-between">
+                                <div>
+                                    <!-- Store Badge -->
+                                    <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-1 truncate cursor-pointer hover:text-brand-800" @click="viewStore(product.storeId)">
+                                        <i class="fa-solid fa-shop text-brand-600 text-[10px]"></i>
+                                        <span x-text="getStoreName(product.storeId)" class="font-medium truncate"></span>
+                                    </div>
+
+                                    <h4 @click="openProductModal(product)" class="text-xs sm:text-sm font-semibold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-800 mb-1" x-text="product.name"></h4>
+                                </div>
+
+                                <div>
+                                    <!-- Rating -->
+                                    <div class="flex items-center gap-1 text-[11px] text-amber-500 mb-2">
+                                        <i class="fa-solid fa-star"></i>
+                                        <span class="font-bold text-slate-700" x-text="product.rating"></span>
+                                        <span class="text-slate-400 text-[10px]" x-text="'(' + product.reviewsCount + ')'"></span>
+                                    </div>
+
+                                    <!-- Price & Cart Add Button -->
+                                    <div class="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
+                                        <div>
+                                            <span class="text-xs text-slate-400 block line-through" x-show="product.oldPrice" x-text="formatCurrency(product.oldPrice)"></span>
+                                            <span class="text-sm sm:text-base font-black text-brand-800" x-text="formatCurrency(product.price)"></span>
+                                        </div>
+                                        <button @click="addToCart(product)" 
+                                                :disabled="product.stock === 0"
+                                                class="bg-brand-800 hover:bg-brand-900 disabled:bg-slate-300 text-white w-8 h-8 rounded-lg flex items-center justify-center transition shadow-sm">
+                                            <i class="fa-solid fa-plus text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Empty Search Result -->
+                <div x-show="filteredProducts.length === 0" class="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                    <i class="fa-solid fa-box-open text-5xl text-slate-300 mb-3 block"></i>
+                    <h3 class="text-lg font-bold text-slate-700">Nenhum produto encontrado</h3>
+                    <p class="text-sm text-slate-500 mt-1">Tente pesquisar por outro termo ou selecione outra categoria.</p>
+                    <button @click="selectedCategory = 'all'; searchQuery = ''" class="mt-4 bg-brand-800 text-white text-xs font-bold px-4 py-2 rounded-lg">Limpar Filtros</button>
+                </div>
+            </div>
+        </template>
+
+        <!-- VIEW 2: STORES DIRECTORY ("Lojas por categorias") -->
+        <template x-if="currentTab === 'stores'">
+            <div class="space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h2 class="text-2xl font-black text-brand-800 flex items-center gap-2">
+                            <i class="fa-solid fa-store"></i> Balcões Virtuais & Lojas
+                        </h2>
+                        <p class="text-sm text-slate-600">Conheça os comerciantes e PMEs registados no Meu Balcão</p>
+                    </div>
+                    <button @click="openAddStoreModal()" class="bg-brand-800 text-white font-bold px-5 py-2.5 rounded-lg hover:bg-brand-900 transition text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Cadastrar Nova Loja
+                    </button>
+                </div>
+
+                <!-- Stores Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="store in stores" :key="store.id">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-xl bg-brand-cream border border-brand-200 flex items-center justify-center font-bold text-brand-800 text-xl shadow-sm">
+                                            <span x-text="store.name.substring(0,2).toUpperCase()"></span>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-slate-800 text-base" x-text="store.name"></h3>
+                                            <span class="text-xs font-semibold px-2 py-0.5 bg-brand-100 text-brand-800 rounded" x-text="store.category"></span>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-full">
+                                        <i class="fa-solid fa-check-circle text-[10px]"></i> Verificada
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 line-clamp-2 mb-4" x-text="store.description"></p>
+                                
+                                <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-lg mb-4 text-slate-600">
+                                    <div><i class="fa-solid fa-location-dot text-brand-600 mr-1"></i> <span x-text="store.location"></span></div>
+                                    <div><i class="fa-solid fa-box text-brand-600 mr-1"></i> <span x-text="getStoreProductCount(store.id) + ' Produtos'"></span></div>
+                                    <div class="col-span-2 text-slate-500 text-[11px]"><i class="fa-solid fa-id-card text-brand-600 mr-1"></i> NIF: <span x-text="store.nif"></span></div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-3 border-t border-slate-100">
+                                <button @click="viewStore(store.id)" class="flex-1 bg-brand-800 text-white font-bold py-2 px-3 rounded-lg text-xs hover:bg-brand-900 transition text-center">
+                                    Visitar Montra
+                                </button>
+                                <button @click="copyStoreLink(store)" class="bg-brand-cream text-brand-800 hover:bg-brand-200 p-2 rounded-lg text-xs transition" title="Copiar link partilhável">
+                                    <i class="fa-solid fa-share-nodes"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- VIEW 3: SELLER DASHBOARD ("Minha Bancada & Gestão de Stock") -->
+        <template x-if="currentTab === 'seller-dashboard'">
+            <div class="space-y-6">
+                <!-- Dashboard Header -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-brand-800 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded">Área do Comerciante PME</span>
+                            <span class="text-xs text-slate-500">Gestão de Stock & Faturação</span>
+                        </div>
+                        <h2 class="text-2xl font-black text-brand-800 flex items-center gap-2">
+                            <i class="fa-solid fa-cash-register"></i> Minha Bancada Virtual
+                        </h2>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button @click="openAddProductModal()" class="bg-brand-800 hover:bg-brand-900 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Adicionar Produto
+                        </button>
+                        <button @click="openAddStoreModal()" class="bg-brand-cream border border-brand-800 text-brand-800 font-semibold px-4 py-2 rounded-lg text-xs hover:bg-brand-200 transition">
+                            <i class="fa-solid fa-gear"></i> Configurar Balcão
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Summary Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-brand-cream text-brand-800 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Total de Artigos no Stock</p>
+                            <h3 class="text-xl font-black text-slate-800" x-text="sellerProducts.reduce((a,b) => a + Number(b.stock), 0)"></h3>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Faturas Emitidas</p>
+                            <h3 class="text-xl font-black text-slate-800" x-text="invoices.length"></h3>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-link"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs text-slate-500">Link Partilhável do Balcão</p>
+                            <button @click="copyShareableLink()" class="text-xs font-bold text-brand-800 underline truncate block hover:text-brand-600">
+                                meubalcao.ao/loja/<span x-text="currentStore.slug || 'balcao-pme'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Management Table -->
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-800"></i> Gestão de Stock (Atualização Automática por Venda)
+                        </h3>
+                        <span class="text-xs text-slate-500" x-text="sellerProducts.length + ' Itens Registados'"></span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-brand-cream/50 text-brand-800 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-3.5">Produto</th>
+                                    <th class="p-3.5">Categoria</th>
+                                    <th class="p-3.5">Preço Unitário</th>
+                                    <th class="p-3.5">Qtd Em Stock</th>
+                                    <th class="p-3.5 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="product in sellerProducts" :key="product.id">
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-3.5 font-medium flex items-center gap-3">
+                                            <img :src="product.image" class="w-10 h-10 rounded-lg object-cover border border-slate-200" onerror="this.src='https://placehold.co/100x100/364322/F7F2E7?text=MB'">
+                                            <div>
+                                                <span class="block font-semibold text-slate-800" x-text="product.name"></span>
+                                                <span class="text-[11px] text-slate-400" x-text="'ID: ' + product.id"></span>
+                                            </div>
+                                        </td>
+                                        <td class="p-3.5">
+                                            <span class="text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-700" x-text="product.category"></span>
+                                        </td>
+                                        <td class="p-3.5 font-bold text-brand-800" x-text="formatCurrency(product.price)"></td>
+                                        <td class="p-3.5">
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" min="0" x-model.number="product.stock" @change="updateStock(product)" 
+                                                       class="w-16 px-2 py-1 border rounded text-center text-xs font-bold text-slate-800 focus:ring-1 focus:ring-brand-800 outline-none">
+                                                <span class="text-xs" :class="product.stock < 5 ? 'text-red-500 font-bold' : 'text-slate-500'">un</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-3.5 text-center">
+                                            <button @click="deleteProduct(product.id)" class="text-red-500 hover:text-red-700 p-1.5 rounded transition" title="Remover Produto">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- VIEW 4: DIGITAL INVOICES ("Faturação Digital") -->
+        <template x-if="currentTab === 'invoices' || currentTab === 'orders'">
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-brand-800 flex items-center gap-2">
+                            <i class="fa-solid fa-file-invoice"></i> Histórico de Faturas Digitais
+                        </h2>
+                        <p class="text-sm text-slate-600">Emissão digital de faturas integrada diretamente com cada venda efetuada.</p>
+                    </div>
+                </div>
+
+                <!-- Invoices List -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="divide-y divide-slate-100">
+                        <template x-for="inv in invoices" :key="inv.id">
+                            <div class="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 hover:bg-slate-50 transition">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-xl bg-brand-cream border border-brand-200 text-brand-800 flex items-center justify-center text-xl font-bold">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-800 text-sm" x-text="'Fatura ' + inv.number"></span>
+                                            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">PAGA</span>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            Data: <span x-text="inv.date"></span> | Cliente: <span x-text="inv.customerName"></span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-4">
+                                    <div class="text-right">
+                                        <span class="text-xs text-slate-400 block">Valor Total</span>
+                                        <span class="text-base font-black text-brand-800" x-text="formatCurrency(inv.total)"></span>
+                                    </div>
+                                    <button @click="viewInvoiceDetails(inv)" class="bg-brand-800 hover:bg-brand-900 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-eye"></i> Ver Fatura
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="invoices.length === 0" class="p-10 text-center text-slate-500">
+                            <i class="fa-solid fa-file-excel text-4xl text-slate-300 mb-2 block"></i>
+                            Nenhuma fatura emitida ainda. Realize uma compra simulada para gerar uma fatura digital!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+    </main>
+
+    <!-- PRODUCT DETAIL MODAL -->
+    <div x-show="productModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative border border-slate-100" @click.outside="productModalOpen = false">
+            <button @click="productModalOpen = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <template x-if="selectedProduct">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-brand-cream/50 rounded-xl overflow-hidden aspect-square border border-brand-200">
+                        <img :src="selectedProduct.image" :alt="selectedProduct.name" class="w-full h-full object-cover">
+                    </div>
+
+                    <div class="flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-semibold px-2 py-1 bg-brand-100 text-brand-800 rounded" x-text="selectedProduct.category"></span>
+                            <h2 class="text-xl font-black text-slate-800 mt-2" x-text="selectedProduct.name"></h2>
+                            
+                            <p class="text-xs text-slate-500 mt-1">
+                                Vendido por: <strong class="text-brand-800" x-text="getStoreName(selectedProduct.storeId)"></strong>
+                            </p>
+
+                            <div class="flex items-center gap-2 text-amber-500 text-sm mt-2">
+                                <i class="fa-solid fa-star"></i>
+                                <span class="font-bold text-slate-800" x-text="selectedProduct.rating"></span>
+                                <span class="text-slate-400 text-xs" x-text="'(' + selectedProduct.reviewsCount + ' avaliações de clientes)'"></span>
+                            </div>
+
+                            <p class="text-xs text-slate-600 mt-4 leading-relaxed" x-text="selectedProduct.description"></p>
+
+                            <div class="mt-4 p-3 bg-brand-cream/60 rounded-lg border border-brand-200">
+                                <span class="text-xs text-slate-500 block">Stock Disponível no Balcão:</span>
+                                <span class="text-sm font-bold text-brand-800" x-text="selectedProduct.stock + ' unidades em loja'"></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-slate-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs text-slate-500">Preço com Fatura Digital:</span>
+                                <span class="text-2xl font-black text-brand-800" x-text="formatCurrency(selectedProduct.price)"></span>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <button @click="addToCart(selectedProduct); productModalOpen = false;" 
+                                        :disabled="selectedProduct.stock === 0"
+                                        class="flex-1 bg-brand-800 hover:bg-brand-900 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                                    <i class="fa-solid fa-cart-plus"></i> Adicionar ao Carrinho
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- CART SLIDE-OVER DRAWER -->
+    <div x-show="cartOpen" class="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-sm" x-cloak>
+        <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div class="w-screen max-w-md bg-white shadow-xl flex flex-col justify-between" @click.outside="cartOpen = false">
+                
+                <!-- Cart Header -->
+                <div class="p-4 bg-brand-800 text-white flex items-center justify-between">
+                    <h3 class="font-bold text-base flex items-center gap-2">
+                        <i class="fa-solid fa-cart-shopping"></i> Seu Balcão de Compras
+                    </h3>
+                    <button @click="cartOpen = false" class="text-white/80 hover:text-white">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Cart Items -->
+                <div class="p-4 flex-grow overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+                    <template x-for="item in cart" :key="item.id">
+                        <div class="py-3 flex items-center gap-3">
+                            <img :src="item.image" class="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0">
+                            <div class="flex-grow">
+                                <h4 class="text-xs font-bold text-slate-800 line-clamp-1" x-text="item.name"></h4>
+                                <span class="text-[11px] text-slate-500 block" x-text="formatCurrency(item.price)"></span>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <button @click="updateCartQty(item, -1)" class="w-5 h-5 bg-slate-100 rounded text-xs font-bold text-slate-600 hover:bg-slate-200">-</button>
+                                    <span class="text-xs font-bold text-slate-800" x-text="item.quantity"></span>
+                                    <button @click="updateCartQty(item, 1)" class="w-5 h-5 bg-slate-100 rounded text-xs font-bold text-slate-600 hover:bg-slate-200">+</button>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-brand-800 block" x-text="formatCurrency(item.price * item.quantity)"></span>
+                                <button @click="removeFromCart(item.id)" class="text-red-400 hover:text-red-600 text-xs mt-1">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="cart.length === 0" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-basket-shopping text-4xl mb-2 block"></i>
+                        Seu carrinho está vazio
+                    </div>
+                </div>
+
+                <!-- Cart Footer & Checkout -->
+                <div class="p-4 border-t border-slate-200 bg-brand-cream/40">
+                    <div class="space-y-1.5 mb-4 text-xs">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Subtotal:</span>
+                            <span class="font-medium" x-text="formatCurrency(cartTotal)"></span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Faturação Digital (Impostos):</span>
+                            <span class="font-medium">Incluído</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-black text-brand-800 pt-2 border-t border-slate-200">
+                            <span>Total Final:</span>
+                            <span x-text="formatCurrency(cartTotal)"></span>
+                        </div>
+                    </div>
+
+                    <button @click="checkoutModalOpen = true; cartOpen = false" 
+                            :disabled="cart.length === 0"
+                            class="w-full bg-brand-800 hover:bg-brand-900 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                        <i class="fa-solid fa-check"></i> Finalizar Compra & Emitir Fatura
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT & INVOICE GENERATION MODAL -->
+    <div x-show="checkoutModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-100" @click.outside="checkoutModalOpen = false">
+            <h3 class="text-xl font-black text-brand-800 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-file-signature"></i> Dados para Fatura Digital
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Insira as informações do comprador para emissão instantânea da fatura digital do seu balcão.</p>
+
+            <form @submit.prevent="processOrder()" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo / Empresa</label>
+                    <input type="text" x-model="checkoutForm.name" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">NIF (Número de Contribuinte)</label>
+                        <input type="text" x-model="checkoutForm.nif" placeholder="500123456" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Telemóvel</label>
+                        <input type="tel" x-model="checkoutForm.phone" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Método de Pagamento</label>
+                    <select x-model="checkoutForm.paymentMethod" class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                        <option value="multicaixa">Multicaixa Express / Referência</option>
+                        <option value="transfer">Transferência Bancária</option>
+                        <option value="cash">Pagamento no Balcão</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 mt-2">
+                    <p class="font-bold text-slate-800">Resumo da Encomenda:</p>
+                    <p x-text="cart.length + ' itens selecionados — Total: ' + formatCurrency(cartTotal)"></p>
+                </div>
+
+                <div class="flex items-center gap-3 pt-3">
+                    <button type="button" @click="checkoutModalOpen = false" class="w-1/2 py-2.5 rounded-lg border text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-lg bg-brand-800 text-white text-xs font-bold hover:bg-brand-900 transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-receipt"></i> Emitir Fatura & Pagar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- INVOICE VIEW / PRINT MODAL -->
+    <div x-show="invoiceModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl relative" @click.outside="invoiceModalOpen = false">
+            
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full"><i class="fa-solid fa-circle-check"></i> Fatura Emitida com Sucesso</span>
+                <div class="flex items-center gap-2">
+                    <button @click="window.print()" class="bg-brand-800 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-brand-900 transition">
+                        <i class="fa-solid fa-print"></i> Imprimir
+                    </button>
+                    <button @click="invoiceModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Printable Digital Invoice Paper -->
+            <div id="printable-invoice" class="bg-white p-6 border border-slate-200 rounded-xl text-xs space-y-4 shadow-inner">
+                <!-- Invoice Header -->
+                <div class="flex justify-between items-start border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 class="text-lg font-black text-brand-800">MEU BALCÃO</h2>
+                        <p class="text-[10px] text-slate-500">Plataforma de Gestão & Vendas PME</p>
+                        <p class="text-[10px] text-slate-500">NIF Geral: 5412988301</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold text-slate-800 block text-sm" x-text="'FATURA ' + activeInvoice.number"></span>
+                        <span class="text-[10px] text-slate-500 block" x-text="'Data: ' + activeInvoice.date"></span>
+                        <span class="text-[10px] text-slate-500 block">Via Digital Autêntica</span>
+                    </div>
+                </div>
+
+                <!-- Customer & Merchant Details -->
+                <div class="grid grid-cols-2 gap-4 bg-brand-cream/30 p-3 rounded-lg border border-brand-200/50">
+                    <div>
+                        <p class="font-bold text-brand-800 text-[11px]">DADOS DO CLIENTE:</p>
+                        <p class="font-medium text-slate-800" x-text="activeInvoice.customerName"></p>
+                        <p class="text-slate-600" x-text="'NIF: ' + activeInvoice.customerNif"></p>
+                        <p class="text-slate-600" x-text="'Tel: ' + activeInvoice.customerPhone"></p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-brand-800 text-[11px]">LOJA / BALCÃO:</p>
+                        <p class="font-medium text-slate-800" x-text="activeInvoice.storeName"></p>
+                        <p class="text-slate-600">Venda Processada via Meu Balcão</p>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-300 text-slate-700 font-bold text-[11px]">
+                            <th class="py-1.5">Item</th>
+                            <th class="py-1.5 text-center">Qtd</th>
+                            <th class="py-1.5 text-right">Preço Un.</th>
+                            <th class="py-1.5 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <template x-for="item in activeInvoice.items" :key="item.id">
+                            <tr>
+                                <td class="py-2 font-medium" x-text="item.name"></td>
+                                <td class="py-2 text-center" x-text="item.quantity"></td>
+                                <td class="py-2 text-right" x-text="formatCurrency(item.price)"></td>
+                                <td class="py-2 text-right font-bold" x-text="formatCurrency(item.price * item.quantity)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Summary -->
+                <div class="pt-3 border-t border-slate-200 flex justify-between items-end">
+                    <!-- Fake QR Code mockup -->
+                    <div class="flex items-center gap-2">
+                        <div class="w-14 h-14 bg-slate-900 rounded p-1 flex flex-wrap gap-0.5 items-center justify-center">
+                            <div class="w-3 h-3 bg-white"></div>
+                            <div class="w-3 h-3 bg-white"></div>
+                            <div class="w-3 h-3 bg-white"></div>
+                            <div class="w-3 h-3 bg-white"></div>
+                        </div>
+                        <span class="text-[9px] text-slate-400 max-w-[100px] leading-tight">Documento gerado e assinado digitalmente pelo Meu Balcão.</span>
+                    </div>
+
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block">Total Impostos Incluídos</span>
+                        <span class="text-lg font-black text-brand-800" x-text="formatCurrency(activeInvoice.total)"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / REGISTER STORE MODAL ("Adicionar lojas") -->
+    <div x-show="addStoreModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative" @click.outside="addStoreModalOpen = false">
+            <h3 class="text-xl font-black text-brand-800 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-store"></i> Cadastrar Novo Balcão
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Crie a sua montra online e comece a gerir o stock e faturas do seu negócio PME.</p>
+
+            <form @submit.prevent="saveNewStore()" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome do Balcão / Loja</label>
+                    <input type="text" x-model="newStoreForm.name" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Categoria Principal</label>
+                    <select x-model="newStoreForm.category" class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                        <option value="Roupas">Roupas</option>
+                        <option value="Cosméticos">Cosméticos</option>
+                        <option value="Eletrónicos">Eletrónicos</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">NIF da Empresa</label>
+                    <input type="text" x-model="newStoreForm.nif" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Localização / Cidade</label>
+                    <input type="text" x-model="newStoreForm.location" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Descrição</label>
+                    <textarea x-model="newStoreForm.description" rows="2" class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800"></textarea>
+                </div>
+
+                <div class="flex items-center gap-3 pt-3">
+                    <button type="button" @click="addStoreModalOpen = false" class="w-1/2 py-2.5 rounded-lg border text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-lg bg-brand-800 text-white text-xs font-bold hover:bg-brand-900 transition">Criar Balcão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD NEW PRODUCT MODAL -->
+    <div x-show="addProductModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative" @click.outside="addProductModalOpen = false">
+            <h3 class="text-xl font-black text-brand-800 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-box-open"></i> Adicionar Produto ao Stock
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Registe um novo artigo para ficar imediatamente disponível na sua montra digital.</p>
+
+            <form @submit.prevent="saveNewProduct()" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome do Produto</label>
+                    <input type="text" x-model="newProductForm.name" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Categoria</label>
+                        <select x-model="newProductForm.category" class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                            <option value="Roupas">Roupas</option>
+                            <option value="Cosméticos">Cosméticos</option>
+                            <option value="Eletrónicos">Eletrónicos</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Preço (Kz)</label>
+                        <input type="number" step="0.01" x-model.number="newProductForm.price" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Quantidade Inicial em Stock</label>
+                    <input type="number" min="1" x-model.number="newProductForm.stock" required class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">URL da Imagem</label>
+                    <input type="url" x-model="newProductForm.image" placeholder="https://..." class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Descrição</label>
+                    <textarea x-model="newProductForm.description" rows="2" class="w-full px-3 py-2 border rounded-lg text-xs outline-none focus:border-brand-800"></textarea>
+                </div>
+
+                <div class="flex items-center gap-3 pt-3">
+                    <button type="button" @click="addProductModalOpen = false" class="w-1/2 py-2.5 rounded-lg border text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-lg bg-brand-800 text-white text-xs font-bold hover:bg-brand-900 transition">Salvar Artigo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-brand-800 text-brand-cream border-t border-brand-900 mt-12 py-8">
+        <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
+            <div>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 bg-brand-cream text-brand-800 rounded-lg flex items-center justify-center font-bold">MB</div>
+                    <span class="text-base font-black text-white">Meu Balcão</span>
+                </div>
+                <p class="text-brand-200 leading-relaxed">Portal da empresa voltado para PMEs. Gestão de stock, faturação digital e montra online integrada num só lugar.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-white uppercase tracking-wider mb-3">Categorias</h4>
+                <ul class="space-y-2 text-brand-200">
+                    <li><a @click="currentTab = 'home'; filterByCategory('Roupas')" class="hover:underline cursor-pointer">Roupas</a></li>
+                    <li><a @click="currentTab = 'home'; filterByCategory('Cosméticos')" class="hover:underline cursor-pointer">Cosméticos</a></li>
+                    <li><a @click="currentTab = 'home'; filterByCategory('Eletrónicos')" class="hover:underline cursor-pointer">Eletrónicos</a></li>
+                    <li><a @click="currentTab = 'home'; filterByCategory('Outros')" class="hover:underline cursor-pointer">Outros</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white uppercase tracking-wider mb-3">Soluções PME</h4>
+                <ul class="space-y-2 text-brand-200">
+                    <li><a @click="currentTab = 'seller-dashboard'" class="hover:underline cursor-pointer">Gestão de Stock Instantânea</a></li>
+                    <li><a @click="currentTab = 'invoices'" class="hover:underline cursor-pointer">Emissão Digital de Faturas</a></li>
+                    <li><a @click="currentTab = 'stores'" class="hover:underline cursor-pointer">Link Partilhável do Balcão</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white uppercase tracking-wider mb-3">Segurança & Garantia</h4>
+                <p class="text-brand-200 mb-2">Faturas emitidas de forma autêntica e integrada em cada transação de compra e venda.</p>
+                <span class="inline-block bg-brand-700 text-yellow-300 px-3 py-1 rounded font-bold">PME Digital Certified</span>
+            </div>
+        </div>
+        <div class="container mx-auto px-4 mt-8 pt-4 border-t border-brand-700/50 text-center text-brand-300 text-[11px]">
+            &copy; 2026 Meu Balcão. Todos os direitos reservados. Projeto PME Mercado & Faturação Digital.
+        </div>
+    </footer>
+
+    <script>
+        function meuBalcaoApp() {
+            return {
+                currentTab: 'home', // home, stores, seller-dashboard, invoices, orders
+                userMode: 'client', // client or seller
+                selectedCategory: 'all',
+                searchQuery: '',
+                sortBy: 'popular',
+
+                // User Info
+                currentUser: {
+                    name: 'Carlos Silva',
+                    email: 'carlos.silva@pme.ao'
+                },
+
+                // Active store context for seller
+                currentStore: {
+                    id: 1,
+                    name: 'Moda & Estilo Balcão',
+                    slug: 'moda-estilo-balcao',
+                    nif: '5401928371'
+                },
+
+                // Modals state
+                cartOpen: false,
+                productModalOpen: false,
+                checkoutModalOpen: false,
+                invoiceModalOpen: false,
+                addStoreModalOpen: false,
+                addProductModalOpen: false,
+
+                selectedProduct: null,
+                cart: [],
+
+                // Checkout Form
+                checkoutForm: {
+                    name: 'Carlos Silva',
+                    nif: '5401928371',
+                    phone: '923 456 789',
+                    paymentMethod: 'multicaixa'
+                },
+
+                // Stores List (based on PDF "Lojas")
+                stores: [
+                    {
+                        id: 1,
+                        name: 'Moda & Estilo Balcão',
+                        category: 'Roupas',
+                        nif: '5401928371',
+                        location: 'Luanda, Mutamba',
+                        description: 'Montra especializada em vestuário elegante, vestidos e roupa casual PME.',
+                        slug: 'moda-estilo-balcao'
+                    },
+                    {
+                        id: 2,
+                        name: 'Beleza Puríssima',
+                        category: 'Cosméticos',
+                        nif: '5409876543',
+                        location: 'Talatona',
+                        description: 'Produtos de cosmética, perfumes e cuidados com a pele de marcas de confiança.',
+                        slug: 'beleza-purissima'
+                    },
+                    {
+                        id: 3,
+                        name: 'Balcão dos Gadgets',
+                        category: 'Eletrónicos',
+                        nif: '5411223344',
+                        location: 'Maianga',
+                        description: 'Acessórios para telemóveis, smartwatches e auscultadores com fatura oficial.',
+                        slug: 'balcao-dos-gadgets'
+                    }
+                ],
+
+                // Products List
+                products: [
+                    {
+                        id: 101,
+                        storeId: 1,
+                        name: 'Camisa Casual em Algodão PME',
+                        category: 'Roupas',
+                        price: 18500,
+                        oldPrice: 22000,
+                        stock: 12,
+                        rating: 4.8,
+                        reviewsCount: 34,
+                        image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80',
+                        description: 'Camisa de algodão de alta qualidade confeccionada por alfaiataria local.'
+                    },
+                    {
+                        id: 102,
+                        storeId: 2,
+                        name: 'Kit Sérum Facial e Hidratante Orgânico',
+                        category: 'Cosméticos',
+                        price: 14200,
+                        oldPrice: 17000,
+                        stock: 8,
+                        rating: 4.9,
+                        reviewsCount: 52,
+                        image: 'https://images.unsplash.com/photo-1608248597261-8332570544c0?auto=format&fit=crop&w=500&q=80',
+                        description: 'Sérum hidratante para revitalização e brilho natural da pele.'
+                    },
+                    {
+                        id: 103,
+                        storeId: 3,
+                        name: 'Auscultadores Bluetooth Sem Fios Pro',
+                        category: 'Eletrónicos',
+                        price: 26000,
+                        oldPrice: 31000,
+                        stock: 4,
+                        rating: 4.7,
+                        reviewsCount: 19,
+                        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=500&q=80',
+                        description: 'Som límpido com cancelamento de ruído e autonomia de bateria estendida.'
+                    },
+                    {
+                        id: 104,
+                        storeId: 1,
+                        name: 'Vestido de Verão Floral Elegante',
+                        category: 'Roupas',
+                        price: 21500,
+                        oldPrice: 25000,
+                        stock: 15,
+                        rating: 5.0,
+                        reviewsCount: 28,
+                        image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=500&q=80',
+                        description: 'Vestido fluido e confortável para ocasiões especiais e uso diário.'
+                    },
+                    {
+                        id: 105,
+                        storeId: 2,
+                        name: 'Batom Matte Longa Duração 24h',
+                        category: 'Cosméticos',
+                        price: 6500,
+                        oldPrice: 8000,
+                        stock: 20,
+                        rating: 4.6,
+                        reviewsCount: 41,
+                        image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=500&q=80',
+                        description: 'Cor intensa sem ressecar os lábios com acabamento aveludado.'
+                    },
+                    {
+                        id: 106,
+                        storeId: 3,
+                        name: 'Smartwatch Fitness com Monitor Cardíaco',
+                        category: 'Eletrónicos',
+                        price: 34000,
+                        oldPrice: 40000,
+                        stock: 6,
+                        rating: 4.8,
+                        reviewsCount: 63,
+                        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=500&q=80',
+                        description: 'Relógio inteligente para acompanhamento de atividades desportivas e notificações.'
+                    },
+                    {
+                        id: 107,
+                        storeId: 1,
+                        name: 'Mochila de Couro Artesanal para Balcão',
+                        category: 'Outros',
+                        price: 28900,
+                        oldPrice: 33000,
+                        stock: 5,
+                        rating: 4.9,
+                        reviewsCount: 15,
+                        image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=500&q=80',
+                        description: 'Mochila resistente em couro natural com compartimento para portátil.'
+                    }
+                ],
+
+                // Invoices Database
+                invoices: [
+                    {
+                        id: 501,
+                        number: 'FT-2026/0089',
+                        date: '09/10/2026',
+                        customerName: 'Carlos Silva',
+                        customerNif: '5401928371',
+                        customerPhone: '923 456 789',
+                        storeName: 'Moda & Estilo Balcão',
+                        total: 18500,
+                        items: [
+                            { name: 'Camisa Casual em Algodão PME', quantity: 1, price: 18500 }
+                        ]
+                    }
+                ],
+
+                // Active invoice selected for viewing/printing
+                activeInvoice: {},
+
+                // Form Data for New Store & New Product
+                newStoreForm: {
+                    name: '',
+                    category: 'Roupas',
+                    nif: '',
+                    location: '',
+                    description: ''
+                },
+                newProductForm: {
+                    name: '',
+                    category: 'Roupas',
+                    price: 0,
+                    stock: 10,
+                    image: '',
+                    description: ''
+                },
+
+                // Getters & Computed Filters
+                get filteredProducts() {
+                    let list = this.products;
+
+                    if (this.selectedCategory !== 'all') {
+                        list = list.filter(p => p.category === this.selectedCategory);
+                    }
+
+                    if (this.searchQuery.trim() !== '') {
+                        const q = this.searchQuery.toLowerCase();
+                        list = list.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+                    }
+
+                    if (this.sortBy === 'price-low') {
+                        list = [...list].sort((a,b) => a.price - b.price);
+                    }
+
+                    return list;
+                },
+
+                get sellerProducts() {
+                    return this.products.filter(p => p.storeId === this.currentStore.id);
+                },
+
+                get cartTotal() {
+                    return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                },
+
+                // Initialization
+                initApp() {
+                    this.activeInvoice = this.invoices[0] || {};
+                },
+
+                // Helper Functions
+                formatCurrency(val) {
+                    return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(val).replace('AOA', 'Kz');
+                },
+
+                getStoreName(storeId) {
+                    const st = this.stores.find(s => s.id === storeId);
+                    return st ? st.name : 'Meu Balcão PME';
+                },
+
+                getStoreProductCount(storeId) {
+                    return this.products.filter(p => p.storeId === storeId).length;
+                },
+
+                filterByCategory(cat) {
+                    this.selectedCategory = cat;
+                    this.currentTab = 'home';
+                },
+
+                searchProducts() {
+                    this.currentTab = 'home';
+                },
+
+                scrollToProducts() {
+                    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+                },
+
+                // Cart Operations
+                addToCart(product) {
+                    if (product.stock <= 0) return;
+                    const existing = this.cart.find(i => i.id === product.id);
+                    if (existing) {
+                        if (existing.quantity < product.stock) {
+                            existing.quantity++;
+                        }
+                    } else {
+                        this.cart.push({ ...product, quantity: 1 });
+                    }
+                    this.cartOpen = true;
+                },
+
+                updateCartQty(item, delta) {
+                    item.quantity += delta;
+                    if (item.quantity <= 0) {
+                        this.removeFromCart(item.id);
+                    }
+                },
+
+                removeFromCart(productId) {
+                    this.cart = this.cart.filter(i => i.id !== productId);
+                },
+
+                // Product Modal
+                openProductModal(product) {
+                    this.selectedProduct = product;
+                    this.productModalOpen = true;
+                },
+
+                // View specific Store Showcase ("Montra Online")
+                viewStore(storeId) {
+                    const st = this.stores.find(s => s.id === storeId);
+                    if (st) {
+                        this.currentStore = st;
+                        this.selectedCategory = 'all';
+                        this.searchQuery = st.name;
+                        this.currentTab = 'home';
+                    }
+                },
+
+                copyStoreLink(store) {
+                    const link = `https://meubalcao.ao/loja/${store.slug}`;
+                    const el = document.createElement('textarea');
+                    el.value = link;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    alert(`Link do Balcão copiado: ${link}`);
+                },
+
+                copyShareableLink() {
+                    this.copyStoreLink(this.currentStore);
+                },
+
+                // Process Checkout & Decrement Stock & Generate Invoice
+                processOrder() {
+                    if (this.cart.length === 0) return;
+
+                    // 1. Decrement Stock for bought items
+                    this.cart.forEach(item => {
+                        const prod = this.products.find(p => p.id === item.id);
+                        if (prod) {
+                            prod.stock = Math.max(0, prod.stock - item.quantity);
+                        }
+                    });
+
+                    // 2. Generate Digital Invoice
+                    const newInvoice = {
+                        id: Date.now(),
+                        number: 'FT-' + new Date().getFullYear() + '/' + Math.floor(1000 + Math.random() * 9000),
+                        date: new Date().toLocaleDateString('pt-PT'),
+                        customerName: this.checkoutForm.name,
+                        customerNif: this.checkoutForm.nif,
+                        customerPhone: this.checkoutForm.phone,
+                        storeName: this.getStoreName(this.cart[0].storeId),
+                        total: this.cartTotal,
+                        items: [...this.cart]
+                    };
+
+                    this.invoices.unshift(newInvoice);
+                    this.activeInvoice = newInvoice;
+
+                    // 3. Reset Cart
+                    this.cart = [];
+                    this.checkoutModalOpen = false;
+                    this.invoiceModalOpen = true;
+                },
+
+                viewInvoiceDetails(inv) {
+                    this.activeInvoice = inv;
+                    this.invoiceModalOpen = true;
+                },
+
+                // Seller Actions: Add Store & Add Product
+                openAddStoreModal() {
+                    this.addStoreModalOpen = true;
+                },
+
+                saveNewStore() {
+                    const id = Date.now();
+                    const slug = this.newStoreForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                    const storeObj = {
+                        id,
+                        name: this.newStoreForm.name,
+                        category: this.newStoreForm.category,
+                        nif: this.newStoreForm.nif,
+                        location: this.newStoreForm.location,
+                        description: this.newStoreForm.description,
+                        slug
+                    };
+                    this.stores.push(storeObj);
+                    this.currentStore = storeObj;
+                    this.addStoreModalOpen = false;
+                    this.currentTab = 'seller-dashboard';
+                    this.userMode = 'seller';
+
+                    // Reset form
+                    this.newStoreForm = { name: '', category: 'Roupas', nif: '', location: '', description: '' };
+                },
+
+                openAddProductModal() {
+                    this.addProductModalOpen = true;
+                },
+
+                saveNewProduct() {
+                    const prodObj = {
+                        id: Date.now(),
+                        storeId: this.currentStore.id,
+                        name: this.newProductForm.name,
+                        category: this.newProductForm.category,
+                        price: Number(this.newProductForm.price),
+                        stock: Number(this.newProductForm.stock),
+                        rating: 5.0,
+                        reviewsCount: 1,
+                        image: this.newProductForm.image || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=500&q=80',
+                        description: this.newProductForm.description || 'Produto de balcão de excelente qualidade.'
+                    };
+                    this.products.unshift(prodObj);
+                    this.addProductModalOpen = false;
+
+                    // Reset form
+                    this.newProductForm = { name: '', category: 'Roupas', price: 0, stock: 10, image: '', description: '' };
+                },
+
+                updateStock(product) {
+                    if (product.stock < 0) product.stock = 0;
+                },
+
+                deleteProduct(id) {
+                    if (confirm('Tem a certeza que deseja remover este artigo do balcão?')) {
+                        this.products = this.products.filter(p => p.id !== id);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
